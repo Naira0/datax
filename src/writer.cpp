@@ -47,7 +47,7 @@ std::string dtx::Writer::to_string(dtx::Value &value)
     {
         case 0: return std::to_string(std::get<double>(value));
         case 1: return std::get<bool>(value) ? "true" : "false";
-        case 2: return std::get<std::string>(value);
+        case 2: return '"' + std::get<std::string>(value) + '"';
         case 3:
         {
             auto array = std::get<std::vector<dtx::Record>>(value);
