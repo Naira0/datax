@@ -4,7 +4,7 @@ datax is a file format. if JSON and INI had a deformed baby this would be it.
 
 ## Datax showcase
 
-```json
+```yaml
 <window>
 title: "testing window"
 fullscreen: true
