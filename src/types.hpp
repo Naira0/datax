@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <utility>
 #include <variant>
 #include <vector>
 #include <map>
@@ -8,26 +9,47 @@
 
 namespace dtx
 {
-    enum class Type
+    enum Type : uint8_t
     {
-        NUMBER, BOOL, STRING, ARRAY, RECORD
+        Number, Bool, String, Array, Object
     };
 
     struct Record;
 
-    // the key-value fields under a header
     using Fields =  std::unordered_map<std::string, Record>;
 
     using Value = std::variant<double, bool, std::string,
     std::vector<Record>,
     Fields>;
 
+    using Records = std::unordered_map<std::string, Fields>;
+
     struct Record
     {
         Value value;
-        Type type;
-    };
 
-    // all the headers and their fields in a datax file
-    using Records = std::unordered_map<std::string, Fields>;
+        Record(Value& value) : value(std::move(value)) {}
+        Record(Value value) : value(std::move(value)) {}
+
+        Record() = default;
+
+        Record& operator=(Value val)
+        {
+            value = std::move(val);
+            return *this;
+        }
+
+        template<size_t I>
+        auto& get()
+        {
+            return std::get<I>(value);
+        }
+
+        template<size_t I>
+        auto get() const
+        {
+            return std::get<I>(value);
+        }
+
+    };
 }

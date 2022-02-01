@@ -1,17 +1,22 @@
 #pragma once
 
-#include <utility>
+#include <optional>
 #include "types.hpp"
 
 namespace dtx
 {
-    // small utility function for getting a record value
+    // small utility function for getting a record value as an optional
     template<typename T>
-    std::pair<T, bool> get_record(dtx::Fields& fields, const std::string& name)
+    std::optional<T> get_record(dtx::Fields& fields, const std::string& name)
     {
         if(!fields.contains(name))
-            return {T(), false};
+            return std::nullopt;
+
         dtx::Record record = fields.at(name);
-        return {std::get<T>(record.value), true};
+
+        if(!holds_alternative<T>(record.value))
+            return std::nullopt;
+
+        return std::optional(std::get<T>(record.value));
     }
 }

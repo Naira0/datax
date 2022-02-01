@@ -10,14 +10,14 @@ namespace dtx
 
     enum class From
     {
-        STRING,
-        FILE
+        String,
+        File
     };
 
-    class Reader
+    class Reader : public Records
     {
     public:
-        Reader(From from, const std::string& str);
+        Reader(From from, std::string_view str);
 
         struct State
         {
@@ -25,12 +25,11 @@ namespace dtx
             const char *message;
         } state;
 
-        Records records;
-
     private:
         std::string source;
 
         Fields current_record;
+
         std::string current_key;
         std::string current_record_name;
 
@@ -58,10 +57,10 @@ namespace dtx
         void scan_key();
         void scan_comment();
 
-        Record scan_number();
-        Record scan_string();
-        Record scan_object();
-        Record scan_array();
+        Value scan_number();
+        Value scan_string();
+        Value scan_array();
+        Value scan_object();
     };
 
 }

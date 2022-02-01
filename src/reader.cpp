@@ -1,12 +1,13 @@
 #include <fstream>
 #include <cctype>
+#include <sstream>
 #include "reader.hpp"
 
-dtx::Reader::Reader(dtx::From from, const std::string& str)
+dtx::Reader::Reader(dtx::From from, std::string_view str)
 {
-    if(from == From::FILE)
+    if(from == From::File)
     {
-        std::fstream file(str);
+        std::fstream file(str.data());
 
         if (!file.is_open())
         {
@@ -36,7 +37,7 @@ void dtx::Reader::parse()
     if (current_record.empty())
         return set_error("malformed records found");
 
-    records[current_record_name] = std::move(current_record);
+    this->operator[](current_record_name) = std::move(current_record);
 }
 
 void dtx::Reader::parse_segment(Fields& fields, bool is_nested)
@@ -66,7 +67,7 @@ void dtx::Reader::parse_segment(Fields& fields, bool is_nested)
             if (offset-1 == last_terminator && std::isdigit(c))
                 fields[current_key] = scan_number();
             if (auto [is_true, v] = is_bool(); is_true)
-                fields[current_key] = Record{v, Type::BOOL};
+                fields[current_key] = Record(v);
         }
     }
 }
@@ -117,7 +118,7 @@ void dtx::Reader::scan_header()
 {
     if (!current_record.empty())
     {
-        records[current_record_name] = std::move(current_record);
+        this->operator[](current_record_name) = std::move(current_record);
     }
 
     while (!at_end() && peek() != '>')
@@ -136,7 +137,7 @@ void dtx::Reader::scan_key()
     current_key = std::move(source.substr(last_terminator, offset-last_terminator-1));
 }
 
-dtx::Record dtx::Reader::scan_number()
+dtx::Value dtx::Reader::scan_number()
 {
     loop: while (!at_end() && isdigit(peek()))
         offset++;
@@ -147,12 +148,13 @@ dtx::Record dtx::Reader::scan_number()
         goto loop;
     }
 
+
     std::string value = std::move(source.substr(start, offset-start));
 
-    return {std::stod(value), Type::NUMBER};
+    return std::stod(value);
 }
 
-dtx::Record dtx::Reader::scan_string()
+dtx::Value dtx::Reader::scan_string()
 {
     while(!at_end() && peek() != '"')
         offset++;
@@ -161,16 +163,16 @@ dtx::Record dtx::Reader::scan_string()
 
     offset++;
 
-    return Record{std::move(value), Type::STRING};
+    return value;
 }
 
-dtx::Record dtx::Reader::scan_array()
+dtx::Value dtx::Reader::scan_array()
 {
     start++;
 
     std::string key_name = std::move(current_key);
     std::vector<Record> values;
-    Record val;
+    Value val;
 
     while (!at_end() && peek() != ']')
     {
@@ -190,7 +192,7 @@ dtx::Record dtx::Reader::scan_array()
                 if (std::isdigit(c))
                     val = scan_number();
                 if (auto [is_true, v] = is_bool(); is_true)
-                    val = Record{v, Type::BOOL};
+                    val = v;
         }
     }
 
@@ -198,7 +200,7 @@ dtx::Record dtx::Reader::scan_array()
 
     current_key =  std::move(key_name);
 
-    return Record{std::move(values), Type::ARRAY};
+    return values;
 }
 
 void dtx::Reader::scan_comment()
@@ -207,7 +209,7 @@ void dtx::Reader::scan_comment()
         offset++;
 }
 
-dtx::Record dtx::Reader::scan_object()
+dtx::Value dtx::Reader::scan_object()
 {
     std::string key_name = std::move(current_key);
     Fields fields;
@@ -222,5 +224,5 @@ dtx::Record dtx::Reader::scan_object()
 
     current_key = std::move(key_name);
 
-    return Record{std::move(fields), Type::RECORD};
+    return fields;
 }

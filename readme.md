@@ -20,15 +20,17 @@ the C++ api is basically a wrapper around variants and maps
 
 ### Example
 ```c++
-    dtx::Reader reader(dtx::From::FILE, "test.datax");
+    dtx::Reader reader(dtx::From::File, "test.datax");
 
     if(!reader.state.ok)
     {
         std::cerr << reader.state.message << '\n';
         return -1;
     }
+    
+    reader["some header"]["key"] = "value";
 
-    dtx::Writer writer(reader.records);
+    dtx::Writer writer(reader);
     
     std::cout << writer.to_string();
 ```
@@ -36,19 +38,19 @@ the C++ api is basically a wrapper around variants and maps
 ### Reader
 when you instantiate the Reader class it will read the source either from a file or string and then parse it.
 
-you can use either `dtx::From::FILE` or `dtx::From::STRING`.
+you can use either `dtx::From::File` or `dtx::From::String`.
 
 the reader has a state struct which contains two members `ok` and `message` which are used primarily for reporting errors.
 
-you can access the datax records with the `records` member.
+the reader class itself inherits from `std::unordered_map` so you can use it as such.
 
 #### Usage
 the file is represented as `dtx::Records` which is just a map of fields.
 
-fields are represented with `dtx::Fields` which is a map of records which is just a struct that contains a varient and an enum type.
+fields are represented with `dtx::Fields` which is a map of records which is just a struct that contains a varient.
 
 ```c++
-    dtx::Reader reader(dtx::From::FILE, "test.datax");
+    dtx::Reader reader(dtx::From::File, "test.datax");
 
     if(!reader.state.ok)
     {
@@ -56,14 +58,10 @@ fields are represented with `dtx::Fields` which is a map of records which is jus
         return -1;
     }
     
-    if(!reader.records.contains("window"))
-        init_window_settings(reader.records);
+    if(!reader.contains("window"))
+        init_window_settings(reader);
 
-    dtx::Fields window_settings = reader.records.at("window");
-
-    dtx::Record fullscreen_record = window_settings.at("fullscreen");
-    
-    bool is_fullscreen = std::get<bool>(fullscreen_record.value);
+    bool is_fullscreen = reader["window"]["fullscreen"].get<dtx::Bool>();
     
     if(is_fullscreen)
         std::cout << "is fullscreen";
@@ -72,12 +70,18 @@ fields are represented with `dtx::Fields` which is a map of records which is jus
 ```
 you can use this to access variants how you would normally.
 ```c++
-dtx::Record some_record = data.at("header");
+dtx::Record record = data["key"];
 
-switch(some_record.type)
+switch(record.value.index())
 {
-    case dtx::Type::NUMBER: std::get<double>(some_record.value); break;
+    case dtx::Type::Number: record.get<dtx::Number>(); break;
     // and so on
 }
 ```
+
+the record types are `Number, Bool, String, Array, Object` and can be used to access a varients underlying type.
+
+these are just small abstractions to make it easier to use varients with the datax reader.
+
+the underlying types of these are `double, bool, std::string, std::vector<Record>, dtx::Fields`
 
